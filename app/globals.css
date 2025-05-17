@@ -1,6 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
-@import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
@@ -117,7 +117,7 @@
   * {
     @apply border-border outline-ring/50;
   }
-  body {
+  html, body {
     @apply bg-background text-foreground;
     background: var(--background);
     color: var(--foreground);

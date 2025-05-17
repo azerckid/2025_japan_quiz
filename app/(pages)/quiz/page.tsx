@@ -1,6 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import QuizForm from "./QuizForm";
+import QuizSetEnd from "./QuizSetEnd";
+import { Progress } from "@/components/ui/progress";
+import { useQuiz } from "./useQuiz";
+import SetPagination from "./SetPagination";
 
 async function fetchWords() {
   const res = await fetch("/api/quiz-words");
@@ -8,56 +11,56 @@ async function fetchWords() {
   return res.json();
 }
 
+const SET_SIZE = 10;
+
 export default function Quiz() {
-  const [words, setWords] = useState<any[]>([]);
-  const [current, setCurrent] = useState(0);
-  const [input, setInput] = useState("");
-  const [correct, setCorrect] = useState<boolean | null>(null);
-  const [loading, setLoading] = useState(true);
+  const quiz = useQuiz();
 
-  useEffect(() => {
-    fetchWords().then((data) => {
-      setWords(data);
-      setLoading(false);
-    });
-    
-  }, []);
+  if (quiz.loading) return <div>Loading...</div>;
+  if (!quiz.words.length) return <div>단어가 없습니다.</div>;
 
-  if (loading) return <div>Loading...</div>;
-  if (!words.length) return <div>단어가 없습니다.</div>;
-
-  const word = words[current];
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (word.japanese.includes(input.trim())) {
-      setCorrect(true);
-      setTimeout(() => {
-        setInput("");
-        setCorrect(null);
-        setCurrent((prev) => (prev + 1 < words.length ? prev + 1 : 0));
-      }, 800);
-    } else {
-      setCorrect(false);
-    }
+  // 세트 종료 화면
+  if (quiz.showSetEnd) {
+    return (
+      <>
+        <QuizSetEnd
+          wrongList={quiz.wrongList}
+          retryMode={quiz.retryMode}
+          setIndex={quiz.setIndex}
+          words={quiz.words}
+          handleRetryWrong={quiz.handleRetryWrong}
+          handleNextSet={quiz.handleNextSet}
+          handleRestart={quiz.handleRestart}
+          SET_SIZE={quiz.SET_SIZE}
+        />
+        {!quiz.retryMode && <SetPagination {...quiz} />}
+      </>
+    );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen">
-      <h2 className="text-2xl mb-4"><b>{word.korean}</b></h2>
-      <form onSubmit={handleSubmit} className="flex flex-col items-center gap-2">
-        <input
-          type="text"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          className="border px-2 py-1 rounded"
-          placeholder="일본어로 입력하세요"
-        />
-        <Button type="submit" className="btn-primary">제출</Button>
-      </form>
-      {correct === true && <div className="text-green-600 mt-2">정답!</div>}
-      {correct === false && <div className="text-red-600 mt-2">오답입니다.</div>}
-      <div className="mt-8 text-gray-400 text-sm">{current + 1} / {words.length}</div>
+    <div className="flex flex-col items-center justify-start h-screen gap-4 mt-10">
+      {/* Progress bar */}
+      {!quiz.retryMode && (
+        <div className="w-80 mb-2">
+          <Progress value={quiz.progressValue} />
+        </div>
+      )}
+      <QuizForm
+        word={quiz.word}
+        input={quiz.input}
+        setInput={quiz.setInput}
+        handleSubmit={quiz.handleSubmit}
+        correct={quiz.correct}
+        ttsEnabled={quiz.ttsEnabled}
+        setTtsEnabled={quiz.setTtsEnabled}
+      />
+      <div className="mt-8 text-gray-400 text-sm">
+        {quiz.retryMode
+          ? `오답 재도전 ${quiz.current + 1} / ${quiz.setWordsArr.length}`
+          : `세트 ${quiz.setIndex + 1} - ${quiz.current + 1} / ${quiz.setWordsArr.length}`}
+      </div>
+      {!quiz.retryMode && <SetPagination {...quiz} />}
     </div>
   );
 }

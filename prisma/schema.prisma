@@ -19,7 +19,7 @@ model Word {
   japanese   String[] // 일본어 단어들(히라가나, 한자 등 여러 표기)
   english    String[] // 영어 단어들
   meaning    String? // 뜻(설명, 선택사항)
-  level      Int // 난이도(레벨)
+  level      String // 난이도(레벨)
   GameRecord GameRecord[]
 }
 
