@@ -45,7 +45,12 @@ export default function QuizForm({ word, input, setInput, handleSubmit, correct,
           <div className="mt-2 text-blue-600 text-xl">정답: {word.japanese.join(", ")}</div>
         )}
         {!showHint && (
-          <div className="mt-2 text-blue-600 text-xl">난이도: {word.level}</div>
+          <>
+            <div className="mt-2 text-blue-600 text-xl">타이틀: {word.title}</div>
+            <div className="mt-2 text-blue-600 text-xl">챕터: {word.chapter}</div>
+            <div className="mt-2 text-blue-600 text-xl">난이도: {word.level}</div>
+            <div className="mt-2 text-blue-600 text-xl">품사: {word.wordClass}</div>
+          </>
         )}
         <div className="flex gap-2">
           <Button type="submit" className="btn-primary">제출</Button>

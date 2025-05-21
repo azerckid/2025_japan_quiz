@@ -15,11 +15,17 @@ datasource db {
 
 model Word {
   id         Int          @id @default(autoincrement())
+  title      String?
+  chapter    String? // 학년
+  level      String // 난이도(레벨)
+  wordClass  String? // 품사
   korean     String // 한국어 단어
-  japanese   String[] // 일본어 단어들(히라가나, 한자 등 여러 표기)
+  japanese   String[] // 일본어 단어들(히라가나, 카타카나, 한자 등 여러 표기)
+  hiragana   String[] // 일본어 단어들(히라가나)
+  katakana   String[] // 일본어 단어들(카타카나)
+  kanzi      String[] // 한자 단어들
   english    String[] // 영어 단어들
   meaning    String? // 뜻(설명, 선택사항)
-  level      String // 난이도(레벨)
   GameRecord GameRecord[]
 }
 
