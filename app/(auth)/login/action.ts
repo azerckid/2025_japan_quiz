@@ -27,6 +27,7 @@ interface ActionState {
         email?: string[];
         password?: string[];
     };
+    userId?: number | string;
 }
 
 const loginSchema = z.object({
@@ -75,7 +76,7 @@ export async function login(prevState: ActionState | null, formData: FormData): 
                 username: user.username,
             }
             await session.save();
-            return { success: true };
+            return { success: true, userId: user.id };
         }
     } catch (error) {
         if (error instanceof z.ZodError) {

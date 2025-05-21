@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 
-export default function QuizForm({ word, input, setInput, handleSubmit, correct, ttsEnabled, setTtsEnabled }: {
+export default function QuizForm({ word, input, setInput, handleSubmit, correct, ttsEnabled, setTtsEnabled, showHint, setShowHint }: {
   word: any;
   input: string;
   setInput: (v: string) => void;
@@ -9,13 +9,16 @@ export default function QuizForm({ word, input, setInput, handleSubmit, correct,
   correct: boolean | null;
   ttsEnabled: boolean;
   setTtsEnabled: (v: boolean) => void;
+  showHint: boolean;
+  setShowHint: (v: boolean) => void;
 }) {
-  const [showHint, setShowHint] = useState(false);
 
   // word가 바뀔 때마다 힌트 숨기기
   useEffect(() => {
     setShowHint(false);
-  }, [word]);
+  }, [word, setShowHint]);
+
+  if (!word) return <div className="text-center text-gray-500 text-xl">오답이 없습니다.</div>;
 
   return (
     <>
@@ -57,7 +60,7 @@ export default function QuizForm({ word, input, setInput, handleSubmit, correct,
           <Button
             type="button"
             variant="outline"
-            onClick={() => setShowHint((prev) => !prev)}
+            onClick={() => setShowHint(!showHint)}
           >
             {showHint ? "힌트 닫기" : "힌트 보기"}
           </Button>

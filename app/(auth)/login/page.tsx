@@ -1,9 +1,9 @@
 "use client"
 import { useEffect, useState } from "react";
 import { redirect } from "next/navigation";
-import Button from "@/components/button"
-import Input from "@/components/input"
-import SocialLogin from "@/components/social-login"
+import Button from "../../../components/button"
+import Input from "../../../components/input"
+import SocialLogin from "../../../components/social-login"
 import { useActionState } from "react";
 import { login } from "./action";
 import { EMAIL_MIN_LENGTH, EMAIL_MAX_LENGTH, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@/lib/constants";
@@ -16,14 +16,18 @@ interface ActionState {
         email?: string[];
         password?: string[];
     };
+    userId?: string | number;
 }
 
 export default function Login() {
-    const [state, action] = useActionState<ActionState, FormData>(login, { success: false, message: "", fieldErrors: {} })
+    const [state, action] = useActionState<ActionState, FormData>(login, { success: false, message: "", fieldErrors: {}, userId: undefined })
     const [isSuccess, setIsSuccess] = useState(false);
 
     useEffect(() => {
         if (state?.success) {
+            if (state.userId) {
+                localStorage.setItem("userId", String(state.userId));
+            }
             setIsSuccess(true);
         }
     }, [state]);

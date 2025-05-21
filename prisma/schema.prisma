@@ -14,19 +14,20 @@ datasource db {
 }
 
 model Word {
-  id         Int          @id @default(autoincrement())
-  title      String?
-  chapter    String? // 학년
-  level      String // 난이도(레벨)
-  wordClass  String? // 품사
-  korean     String // 한국어 단어
-  japanese   String[] // 일본어 단어들(히라가나, 카타카나, 한자 등 여러 표기)
-  hiragana   String[] // 일본어 단어들(히라가나)
-  katakana   String[] // 일본어 단어들(카타카나)
-  kanzi      String[] // 한자 단어들
-  english    String[] // 영어 단어들
-  meaning    String? // 뜻(설명, 선택사항)
-  GameRecord GameRecord[]
+  id           Int           @id @default(autoincrement())
+  title        String?
+  chapter      String? // 학년
+  level        String // 난이도(레벨)
+  wordClass    String? // 품사
+  korean       String // 한국어 단어
+  japanese     String[] // 일본어 단어들(히라가나, 카타카나, 한자 등 여러 표기)
+  hiragana     String[] // 일본어 단어들(히라가나)
+  katakana     String[] // 일본어 단어들(카타카나)
+  kanzi        String[] // 한자 단어들
+  english      String[] // 영어 단어들
+  meaning      String? // 뜻(설명, 선택사항)
+  GameRecord   GameRecord[]
+  wrongAnswers WrongAnswer[]
 }
 
 model GameRecord {
@@ -44,23 +45,24 @@ model GameRecord {
 }
 
 model User {
-  id          Int          @id @default(autoincrement())
-  username    String       @unique
-  email       String?      @unique
-  password    String?
-  phone       String?      @unique
-  github_id   String?      @unique
-  kakao_id    String?      @unique
-  avatar      String?      @default("https://github.com/identicons/github.png")
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  gameRecords GameRecord[]
-  tokens      SMSToken[]
-  posts       Post[]
-  comments    Comment[]
-  likes       Like[]
-  chat_rooms  ChatRoom[]
-  messages    Message[]
+  id           Int           @id @default(autoincrement())
+  username     String        @unique
+  email        String        @unique
+  password     String
+  phone        String?       @unique
+  github_id    String?       @unique
+  kakao_id     String?       @unique
+  avatar       String?       @default("https://github.com/identicons/github.png")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  gameRecords  GameRecord[]
+  tokens       SMSToken[]
+  posts        Post[]
+  comments     Comment[]
+  likes        Like[]
+  chat_rooms   ChatRoom[]
+  messages     Message[]
+  wrongAnswers WrongAnswer[]
 }
 
 model SMSToken {
@@ -131,4 +133,15 @@ model Message {
   userId     Int
   user       User     @relation(fields: [userId], references: [id])
   status     String   @default("sent")
+}
+
+model WrongAnswer {
+  id          Int      @id @default(autoincrement())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      Int
+  word        Word     @relation(fields: [wordId], references: [id])
+  wordId      Int
+  lastTriedAt DateTime @updatedAt
+  hintUsed    Boolean  @default(false)
+  isCorrected Boolean  @default(false) // 오답 복습에서 맞추면 true로 변경
 }
