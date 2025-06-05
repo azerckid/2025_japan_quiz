@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 
@@ -16,6 +18,7 @@ export default function QuizSetEnd({
   handleNextSet,
   handleRestart,
   SET_SIZE,
+  selectedDay,
 }: {
   wrongList: any[];
   retryMode: boolean;
@@ -25,6 +28,7 @@ export default function QuizSetEnd({
   handleNextSet: () => void;
   handleRestart: () => void;
   SET_SIZE: number;
+  selectedDay: string;
 }) {
   const [alwaysWrongList, setAlwaysWrongList] = useState<any[]>(wrongList);
   useEffect(() => {
@@ -34,16 +38,23 @@ export default function QuizSetEnd({
 
   return (
     <div className="flex flex-col items-center justify-start gap-6 mt-10">
-      <h2 className="text-3xl font-bold">세트 완료!</h2>
+      <h2 className="text-3xl font-bold">
+        {(!retryMode && (setIndex + 1) * SET_SIZE >= words.length)
+          ? `${selectedDay} 완료!`
+          : '세트 완료!'}
+      </h2>
       <div>오답 개수: {alwaysWrongList.length}</div>
       <div className="flex gap-4 mt-4">
+        {retryMode && alwaysWrongList.length > 0 && (
+          <Button onClick={handleRetryWrong} className="btn-primary">남은 오답 풀기</Button>
+        )}
         {!retryMode && alwaysWrongList.length > 0 && (
           <Button onClick={handleRetryWrong} className="btn-primary">오답만 다시 풀기</Button>
         )}
         {!retryMode && (setIndex + 1) * SET_SIZE < words.length && (
           <Button onClick={handleNextSet} className="btn-primary">다음 세트</Button>
         )}
-        {(retryMode || (setIndex + 1) * SET_SIZE >= words.length) && (
+        {((!retryMode && (setIndex + 1) * SET_SIZE >= words.length) || (retryMode && alwaysWrongList.length === 0)) && (
           <Button onClick={handleRestart} className="btn-primary">처음부터 다시</Button>
         )}
       </div>

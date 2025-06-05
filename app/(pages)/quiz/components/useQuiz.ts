@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import { playSound, speakJapanese } from "./ttsUtils";
 
@@ -46,6 +48,8 @@ export function useQuiz() {
     const [filteredWords, setFilteredWords] = useState<any[]>([]);
     const [wrongAnswerMap, setWrongAnswerMap] = useState<Record<number, number>>({}); // wordId -> wrongAnswerId
     const [showHint, setShowHint] = useState(false);
+    const [hintSavedForWord, setHintSavedForWord] = useState<Record<number, boolean>>({});
+    const [dayWrongCount, setDayWrongCount] = useState<{ [day: string]: number }>({});
 
     const userId = Number(typeof window !== "undefined" ? localStorage.getItem("userId") : 0);
 
@@ -93,6 +97,26 @@ export function useQuiz() {
         : filteredWords.slice(setIndex * SET_SIZE, (setIndex + 1) * SET_SIZE);
     const word = setWordsArr[current];
 
+    // 힌트가 열릴 때 오답 저장
+    useEffect(() => {
+        if (showHint && word && userId && !hintSavedForWord[word.id]) {
+            saveWrongAnswer({ userId, wordId: word.id, hintUsed: true });
+            setHintSavedForWord((prev) => ({ ...prev, [word.id]: true }));
+        }
+    }, [showHint, word, userId, hintSavedForWord]);
+
+    // 단어가 바뀌면 힌트 저장 플래그 초기화
+    useEffect(() => {
+        setShowHint(false);
+        if (word && hintSavedForWord[word.id]) {
+            setHintSavedForWord((prev) => {
+                const copy = { ...prev };
+                delete copy[word.id];
+                return copy;
+            });
+        }
+    }, [word]);
+
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         if (!word) return;
@@ -109,61 +133,47 @@ export function useQuiz() {
                 await correctWrongAnswer(word.wrongAnswerId);
                 setWrongList((prev) => prev.filter((w) => w.korean !== word.korean));
             }
-            // 마지막 문제일 때만 TTS 3회 (세트 완료 직전)
-            if (ttsEnabled && current + 1 < setWordsArr.length) {
-                setTimeout(() => {
-                    let count = 0;
-                    function repeatTTS() {
-                        if (count < 3) {
-                            speakJapanese(word.japanese[0], () => {
-                                count++;
-                                if (count < 2) {
-                                    setTimeout(repeatTTS, 100);
-                                }
-                            });
-                        }
-                    }
-                    repeatTTS();
-                }, 1000);
-            }
             setTimeout(() => {
                 setInput("");
                 setCorrect(null);
                 setShowHint(false);
-                if (current + 1 < setWordsArr.length) {
+                if (retryMode) {
+                    // 오답 재도전 모드에서는 wrongList가 갱신되므로 current를 0으로
+                    setCurrent(0);
+                } else if (current + 1 < setWordsArr.length) {
                     setCurrent((prev) => prev + 1);
                 } else {
-                    if (ttsEnabled) {
-                        setTimeout(() => {
-                            let count = 0;
-                            function repeatTTSAndEnd() {
-                                if (count < 3) {
-                                    speakJapanese(word.japanese[0], () => {
-                                        count++;
-                                        if (count < 3) {
-                                            setTimeout(repeatTTSAndEnd, 500);
-                                        } else {
-                                            setShowSetEnd(true);
-                                        }
-                                    });
-                                }
-                            }
-                            repeatTTSAndEnd();
-                        }, 1000);
-                    } else {
-                        setShowSetEnd(true);
-                    }
+                    setShowSetEnd(true);
                 }
             }, 800);
         } else {
             setCorrect(false);
             playSound("wrong");
-            setWrongList((prev) =>
-                prev.some((w) => w.korean === word.korean) ? prev : [...prev, word]
-            );
+            if (!retryMode) {
+                setWrongList((prev) =>
+                    prev.some((w) => w.korean === word.korean) ? prev : [...prev, word]
+                );
+            }
             // 오답 저장
             console.log("[handleSubmit] 오답 저장 시도", { userId, wordId: word.id, hintUsed: false });
             await saveWrongAnswer({ userId, wordId: word.id, hintUsed: false });
+            setTimeout(() => {
+                setInput("");
+                setCorrect(null);
+                setShowHint(false);
+                if (retryMode) {
+                    // 오답 재도전 모드에서는 다음 오답으로 이동
+                    if (current + 1 < setWordsArr.length) {
+                        setCurrent((prev) => prev + 1);
+                    } else {
+                        setCurrent(0); // 마지막까지 풀었으면 다시 처음부터 남은 오답 반복
+                    }
+                } else if (current + 1 < setWordsArr.length) {
+                    setCurrent((prev) => prev + 1);
+                } else {
+                    setShowSetEnd(true);
+                }
+            }, 800);
         }
     }
 
@@ -175,6 +185,17 @@ export function useQuiz() {
         const wrongAnswers = await fetchWrongAnswers(userId);
         // wrongAnswers: [{ id, word, ... }]
         setWrongList(wrongAnswers.map((a: any) => ({ ...a.word, wrongAnswerId: a.id })));
+    }
+
+    async function handleRetryWrongByDay(day: string) {
+        setCurrent(0);
+        setShowSetEnd(false);
+        setRetryMode(true);
+        // 오답 복습용 데이터 불러오기
+        const wrongAnswers = await fetchWrongAnswers(userId);
+        // 해당 DAY의 오답만 필터링
+        const filtered = wrongAnswers.filter((a: any) => a.word.title.includes(day));
+        setWrongList(filtered.map((a: any) => ({ ...a.word, wrongAnswerId: a.id })));
     }
 
     function handleNextSet() {
@@ -203,6 +224,23 @@ export function useQuiz() {
 
     const progressValue = (current / setWordsArr.length) * 100;
 
+    async function fetchDayWrongCounts() {
+        const wrongAnswers = await fetchWrongAnswers(userId);
+        const counts: { [day: string]: number } = {};
+        wrongAnswers.forEach((a: any) => {
+            const match = a.word.title.match(/DAY \d+/);
+            if (match) {
+                const day = match[0];
+                counts[day] = (counts[day] || 0) + 1;
+            }
+        });
+        setDayWrongCount(counts);
+    }
+
+    useEffect(() => {
+        if (userId) fetchDayWrongCounts();
+    }, [userId]);
+
     return {
         words,
         filteredWords,
@@ -226,11 +264,12 @@ export function useQuiz() {
         setWordsArr,
         word,
         handleSubmit,
-        handleNextSet,
         handleRetryWrong,
+        handleRetryWrongByDay,
+        handleNextSet,
         handleRestart,
         handleGoToSet,
-        progressValue,
+        progressValue: retryMode ? (current / (setWordsArr.length || 1)) * 100 : ((setIndex * SET_SIZE + current) / (filteredWords.length || 1)) * 100,
         SET_SIZE,
         ttsEnabled,
         setTtsEnabled,
@@ -240,6 +279,8 @@ export function useQuiz() {
         setSelectedDay,
         showHint,
         setShowHint,
+        dayWrongCount,
+        fetchDayWrongCounts,
     };
 }
 

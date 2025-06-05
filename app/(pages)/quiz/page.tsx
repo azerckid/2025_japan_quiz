@@ -1,9 +1,10 @@
 "use client";
-import QuizForm from "./QuizForm";
-import QuizSetEnd from "./QuizSetEnd";
+
 import { Progress } from "@/components/ui/progress";
-import { useQuiz } from "./useQuiz";
-import SetPagination from "./SetPagination";
+import { useQuiz } from "./components/useQuiz";
+import SetPagination from "./components/SetPagination";
+import QuizForm from "./components/QuizForm";
+import QuizSetEnd from "./components/QuizSetEnd";
 
 function WrongList({ wrongList }: { wrongList: any[] }) {
   if (!wrongList.length) return null;
@@ -30,18 +31,34 @@ export default function Quiz() {
   // DAY 선택 버튼 UI
   const DaySelector = () => (
     <div className="flex gap-2 mb-4 justify-center">
-      {quiz.dayList.map((day: string) => (
-        <button
-          key={day}
-          className={`px-4 py-2 rounded font-bold transition ${quiz.selectedDay === day
-            ? "bg-blue-500 text-white"
-            : "bg-gray-200 text-gray-700 hover:bg-blue-100"
-            }`}
-          onClick={() => quiz.setSelectedDay(day)}
-        >
-          {day}
-        </button>
-      ))}
+      {quiz.dayList.map((day: string) => {
+        const hasWrong = (quiz.dayWrongCount?.[day] ?? 0) > 0;
+        return (
+          <div key={day} className="flex items-center gap-1">
+            <button
+              className={`px-4 py-2 rounded font-bold transition ${quiz.selectedDay === day
+                ? "bg-blue-500 text-white"
+                : "bg-gray-200 text-gray-700 hover:bg-blue-100"
+                }`}
+              onClick={() => quiz.setSelectedDay(day)}
+            >
+              {day}
+            </button>
+            <button
+              className="px-3 py-2 rounded font-bold bg-red-200 text-red-700 hover:bg-red-300 disabled:opacity-50"
+              onClick={async () => {
+                await quiz.handleRetryWrongByDay(day);
+                if ((quiz.dayWrongCount?.[day] ?? 0) === 0) {
+                  alert('해당 DAY에 오답이 없습니다.');
+                }
+              }}
+              disabled={!hasWrong}
+            >
+              오답풀기
+            </button>
+          </div>
+        );
+      })}
     </div>
   );
 
@@ -59,6 +76,7 @@ export default function Quiz() {
           handleNextSet={quiz.handleNextSet}
           handleRestart={quiz.handleRestart}
           SET_SIZE={quiz.SET_SIZE}
+          selectedDay={quiz.selectedDay}
         />
         {!quiz.retryMode && <SetPagination {...quiz} />}
       </>
@@ -68,12 +86,6 @@ export default function Quiz() {
   return (
     <div className="flex flex-col items-center justify-start h-screen gap-4 mt-10">
       <DaySelector />
-      {/* Progress bar */}
-      {!quiz.retryMode && (
-        <div className="w-80 mb-2">
-          <Progress value={quiz.progressValue} />
-        </div>
-      )}
       <QuizForm
         word={quiz.word}
         input={quiz.input}
@@ -92,6 +104,12 @@ export default function Quiz() {
           ? `오답 재도전 ${quiz.current + 1} / ${quiz.setWordsArr.length}`
           : `세트 ${quiz.setIndex + 1} - ${quiz.current + 1} / ${quiz.setWordsArr.length}`}
       </div>
+      {/* Progress bar */}
+      {!quiz.retryMode && (
+        <div className="w-80 mb-2">
+          <Progress value={quiz.progressValue} />
+        </div>
+      )}
       {!quiz.retryMode && <SetPagination {...quiz} />}
     </div>
   );

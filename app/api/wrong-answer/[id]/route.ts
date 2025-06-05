@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "../../../../lib/db";
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, context: { params: { id: string } }) {
+    const { params } = context;
     const id = Number(params.id);
     if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
